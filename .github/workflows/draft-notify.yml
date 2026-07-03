@@ -1,9 +1,11 @@
-name: 초안 PR 생성 + 텔레그램 알림
+name: 초안 PR 생성 + 슬랙 알림
 
 # 루틴이 draft/* 브랜치를 push 하면:
 #  1) base(발행) 브랜치로 향하는 PR을 자동 생성하고 (권한 없으면 compare 링크로 대체)
-#  2) 텔레그램으로 "검토해주세요" 알림을 보냅니다.
-# PR은 사람이 병합해야만 발행됩니다.
+#  2) 슬랙 채널로 "검토해주세요" 알림을 보냅니다.
+# 승인/발행은 슬랙 채널에서 @Claude 를 불러 처리합니다.
+#   예) "@Claude PR #3 초안 보여줘"  →  "@Claude 발행해줘"
+# PR은 사람이 승인해야만 발행됩니다.
 
 on:
   push:
@@ -36,13 +38,13 @@ jobs:
           if [ -z "$URL" ]; then
             URL=$(gh pr create --base "$BASE_BRANCH" --head "$BRANCH" \
               --title "📝 자동 초안: $BRANCH" \
-              --body $'AI가 생성한 초안입니다.\n\n- **병합(Merge)** = 발행 ✅\n- **코멘트** = 수정요청 💬\n- **닫기(Close)** = 폐기 ❌' 2>/dev/null || true)
+              --body $'AI가 생성한 초안입니다.\n\n- **병합(Merge)** = 발행 ✅\n- **코멘트** = 수정요청 💬\n- **닫기(Close)** = 폐기 ❌\n\n슬랙에서 "@Claude 발행해줘" 라고 불러도 됩니다.' 2>/dev/null || true)
           fi
           if [ -z "$URL" ]; then
             URL="https://github.com/${GITHUB_REPOSITORY}/compare/${BASE_BRANCH}...${BRANCH}?expand=1"
             echo "⚠️ Actions의 PR 자동생성 권한이 없어 compare 링크로 대체합니다."
           fi
-          # URL 에서 PR 번호 추출 (…/pull/1 → 1). 버튼 콜백에 사용.
+          # URL 에서 PR 번호 추출 (…/pull/1 → 1)
           NUM=""
           case "$URL" in
             *"/pull/"*) NUM="${URL##*/pull/}"; NUM="${NUM%%[!0-9]*}";;
@@ -67,29 +69,26 @@ jobs:
             echo "__EOF__"
           } >> "$GITHUB_OUTPUT"
 
-      - name: 텔레그램 알림 전송
+      - name: 슬랙 알림 전송
         if: always()
         env:
-          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           URL: ${{ steps.pr.outputs.url }}
           NUM: ${{ steps.pr.outputs.num }}
           TITLES: ${{ steps.titles.outputs.list }}
         run: |
-          if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then
-            echo "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 시크릿이 없습니다."; exit 1
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL 시크릿이 없습니다. (저장소 → Settings → Secrets and variables → Actions 에 추가하세요)"
+            exit 1
           fi
           [ -n "$URL" ] || URL="https://github.com/${GITHUB_REPOSITORY}/branches"
-          TEXT=$(printf '📝 오늘의 AI 모션캡쳐 초안이 준비됐어요.\n\n%s\n검토·승인 👉 %s\n(아래 버튼 또는 "수정 %s: 내용" 으로 답장)' "$TITLES" "$URL" "${NUM:-N}")
-          # PR 번호가 있으면 인라인 버튼(발행/수정/폐기)을 붙인다 → Cloudflare Worker가 처리
-          KBOPT=()
-          if [ -n "$NUM" ]; then
-            KB='{"inline_keyboard":[[{"text":"✅ 발행","callback_data":"pub:'"$NUM"'"},{"text":"✏️ 수정","callback_data":"rev:'"$NUM"'"},{"text":"❌ 폐기","callback_data":"dis:'"$NUM"'"}]]}'
-            KBOPT=(--data-urlencode "reply_markup=${KB}")
+          PRLABEL="${NUM:-N}"
+          TEXT=$(printf '📝 *오늘의 AI 모션캡쳐 초안이 준비됐어요.*\n\n%s\n🔗 검토: %s\n\n이 채널에서 이렇게 불러주세요:\n• `@Claude PR #%s 초안 보여줘`\n• 마음에 들면 `@Claude PR #%s 발행해줘`\n• 고치고 싶으면 `@Claude PR #%s 이렇게 고쳐줘: (내용)`' "$TITLES" "$URL" "$PRLABEL" "$PRLABEL" "$PRLABEL")
+          # 슬랙 Incoming Webhook 으로 전송 (JSON 이스케이프는 jq 로 안전 처리)
+          PAYLOAD=$(printf '%s' "$TEXT" | jq -Rs '{text: .}')
+          RESP=$(curl -sS -X POST -H 'content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL")
+          if [ "$RESP" = "ok" ]; then
+            echo "슬랙 전송 성공"
+          else
+            echo "슬랙 전송 실패: $RESP"; exit 1
           fi
-          RESP=$(curl -sS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${CHAT}" \
-            --data-urlencode "text=${TEXT}" \
-            "${KBOPT[@]}" \
-            -d "disable_web_page_preview=false")
-          echo "$RESP" | grep -q '"ok":true' && echo "텔레그램 전송 성공" || { echo "텔레그램 전송 실패: $RESP"; exit 1; }
