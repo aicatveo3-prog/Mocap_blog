@@ -40,9 +40,15 @@ jobs:
           fi
           if [ -z "$URL" ]; then
             URL="https://github.com/${GITHUB_REPOSITORY}/compare/${BASE_BRANCH}...${BRANCH}?expand=1"
-            echo "⚠️ Actions의 PR 자동생성 권한이 없어 compare 링크로 대체합니다. (Settings에서 켜면 자동 PR 생성됨)"
+            echo "⚠️ Actions의 PR 자동생성 권한이 없어 compare 링크로 대체합니다."
           fi
+          # URL 에서 PR 번호 추출 (…/pull/1 → 1). 버튼 콜백에 사용.
+          NUM=""
+          case "$URL" in
+            *"/pull/"*) NUM="${URL##*/pull/}"; NUM="${NUM%%[!0-9]*}";;
+          esac
           echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "num=$NUM" >> "$GITHUB_OUTPUT"
 
       - name: 새 글 제목 추출
         id: titles
@@ -67,15 +73,23 @@ jobs:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           URL: ${{ steps.pr.outputs.url }}
+          NUM: ${{ steps.pr.outputs.num }}
           TITLES: ${{ steps.titles.outputs.list }}
         run: |
           if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then
             echo "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 시크릿이 없습니다."; exit 1
           fi
           [ -n "$URL" ] || URL="https://github.com/${GITHUB_REPOSITORY}/branches"
-          TEXT=$(printf '📝 오늘의 AI 모션캡쳐 초안이 준비됐어요.\n\n%s\n검토·승인 👉 %s\n(병합=발행 · 코멘트=수정 · 닫기=폐기)' "$TITLES" "$URL")
+          TEXT=$(printf '📝 오늘의 AI 모션캡쳐 초안이 준비됐어요.\n\n%s\n검토·승인 👉 %s\n(아래 버튼 또는 "수정 %s: 내용" 으로 답장)' "$TITLES" "$URL" "${NUM:-N}")
+          # PR 번호가 있으면 인라인 버튼(발행/수정/폐기)을 붙인다 → Cloudflare Worker가 처리
+          KBOPT=()
+          if [ -n "$NUM" ]; then
+            KB='{"inline_keyboard":[[{"text":"✅ 발행","callback_data":"pub:'"$NUM"'"},{"text":"✏️ 수정","callback_data":"rev:'"$NUM"'"},{"text":"❌ 폐기","callback_data":"dis:'"$NUM"'"}]]}'
+            KBOPT=(--data-urlencode "reply_markup=${KB}")
+          fi
           RESP=$(curl -sS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${CHAT}" \
             --data-urlencode "text=${TEXT}" \
+            "${KBOPT[@]}" \
             -d "disable_web_page_preview=false")
           echo "$RESP" | grep -q '"ok":true' && echo "텔레그램 전송 성공" || { echo "텔레그램 전송 실패: $RESP"; exit 1; }
