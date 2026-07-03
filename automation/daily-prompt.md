@@ -4,13 +4,16 @@
 글의 주제·톤·규칙을 바꾸고 싶으면 이 파일만 수정하면 됩니다.
 
 ## 목표
-AI 모션캡쳐 관련 **최신 주제 2개**를 웹에서 찾아, 한국어 블로그 글 2편을 작성하고
-`_posts/`에 커밋·푸시한다. 사람이 개입하지 않아도 매일 자동으로 쌓이게 한다.
+AI 모션캡쳐 관련 **최신 주제 2개**를 웹에서 찾아, 한국어 블로그 글 2편을 **초안**으로 작성한다.
+⚠️ **사이트에 바로 발행하지 않는다.** 초안 브랜치를 만들어 push 하면, GitHub Actions가 PR을 만들고
+텔레그램으로 알림을 보낸다. 사람이 PR을 **병합해야만** 발행된다.
 
 ## 작업 절차
-1. 저장소 루트에서 작업한다. 발행 브랜치(기본 `main`)를 최신 상태로 맞춘다.
+1. 저장소 루트에서 작업한다. 발행(base) 브랜치를 최신 상태로 맞춘다.
+   base 브랜치는 이 파일(`automation/daily-prompt.md`)과 `_posts/`가 있는 브랜치다.
+   `main`에 있으면 `main`, 없으면 `claude/ai-mocap-blog-automation-o273mo`.
    ```
-   git fetch origin && git checkout main && git pull --ff-only origin main
+   git fetch origin && git checkout <base> && git pull --ff-only origin <base>
    ```
 2. `_posts/`의 기존 글 제목을 확인해 **중복 주제를 피한다**.
 3. **웹 검색**으로 서로 다른 최신 주제 2개를 찾는다. 관심 분야:
@@ -43,14 +46,18 @@ AI 모션캡쳐 관련 **최신 주제 2개**를 웹에서 찾아, 한국어 블
    - 슬러그는 영문 소문자·하이픈만 사용(예: `markerless-mocap-2026`).
    - `date`는 한국시간(+0900) 기준, 오늘 날짜.
    - `sources`에는 실제로 참고한 URL 2~5개.
-6. 두 글을 커밋하고 푸시한다.
+6. **발행하지 않는다.** base 브랜치에서 새 초안 브랜치를 만들어 그 브랜치에만 push 한다.
    ```
+   git checkout -b draft/$(date +%Y-%m-%d-%H%M)
    git add _posts
-   git commit -m "chore: 자동 생성 글 (YYYY-MM-DD)"
-   git push origin main
+   git commit -m "draft: 자동 생성 글 ($(date +%Y-%m-%d))"
+   git push -u origin draft/$(date +%Y-%m-%d-%H%M)
    ```
-7. 두 편이 커밋·푸시될 때까지 마무리하지 않는다. **PR은 만들지 않는다.**
+   - base 브랜치에는 **직접 push 하지 않는다.**
+   - PR을 **직접 병합하지 않는다.** (사람이 검토·승인)
+7. 초안 브랜치가 push되면 끝이다. 이후 PR 생성과 텔레그램 알림은 GitHub Actions가 자동 처리한다.
 
 ## 주의
 - 각 글 하단에 참고 자료가 남으므로 sources를 꼭 채운다.
 - 이미 다룬 주제와 겹치면 다른 주제로 교체한다.
+- 절대 base(발행) 브랜치로 직접 push 하거나 PR을 병합하지 않는다.

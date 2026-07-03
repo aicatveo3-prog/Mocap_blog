@@ -1,0 +1,74 @@
+name: 초안 PR 생성 + 텔레그램 알림
+
+# 루틴이 draft/* 브랜치를 push 하면:
+#  1) base(발행) 브랜치로 향하는 PR을 자동 생성하고
+#  2) 텔레그램으로 "검토해주세요" 알림을 보냅니다.
+# PR은 사람이 병합해야만 발행됩니다.
+
+on:
+  push:
+    branches:
+      - "draft/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  BASE_BRANCH: claude/ai-mocap-blog-automation-o273mo
+
+jobs:
+  open-pr-and-notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PR 생성(있으면 재사용)
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          URL=$(gh pr list --head "$BRANCH" --state open --json url -q '.[0].url' || true)
+          if [ -z "$URL" ]; then
+            URL=$(gh pr create --base "$BASE_BRANCH" --head "$BRANCH" \
+              --title "📝 자동 초안: $BRANCH" \
+              --body $'AI가 생성한 초안입니다.\n\n- **병합(Merge)** = 발행 ✅\n- **코멘트** = 수정요청 💬\n- **닫기(Close)** = 폐기 ❌')
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: 새 글 제목 추출
+        id: titles
+        run: |
+          git fetch --no-tags origin "$BASE_BRANCH" || true
+          FILES=$(git diff --name-only "origin/${BASE_BRANCH}...HEAD" -- '_posts/*.md' 2>/dev/null || true)
+          LIST=""
+          for f in $FILES; do
+            [ -f "$f" ] || continue
+            T=$(grep -m1 '^title:' "$f" | sed -E 's/^title:[[:space:]]*//; s/^"(.*)"$/\1/')
+            [ -n "$T" ] && LIST="${LIST}• ${T}"$'\n'
+          done
+          {
+            echo "list<<__EOF__"
+            printf '%s' "$LIST"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 텔레그램 알림 전송
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          URL: ${{ steps.pr.outputs.url }}
+          TITLES: ${{ steps.titles.outputs.list }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then
+            echo "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 시크릿이 없습니다."; exit 1
+          fi
+          TEXT=$(printf '📝 오늘의 AI 모션캡쳐 초안이 준비됐어요.\n\n%s\n검토·승인 👉 %s\n(병합=발행 · 코멘트=수정 · 닫기=폐기)' "$TITLES" "$URL")
+          curl -sS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT}" \
+            --data-urlencode "text=${TEXT}" \
+            -d "disable_web_page_preview=false" | tail -c 300
