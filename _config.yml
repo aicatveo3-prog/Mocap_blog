@@ -1,0 +1,42 @@
+# ── AI 모션캡쳐 블로그 설정 ──────────────────────────────
+title: "AI 모션캡쳐 랩"
+tagline: "AI 모션캡쳐 기술을 매일 두 편씩, 자동으로 정리합니다"
+description: >-
+  AI 기반 모션캡쳐(markerless mocap, pose estimation, 3D 애니메이션 자동화 등)
+  최신 기술과 도구를 매일 자동으로 큐레이션·발행하는 블로그입니다.
+lang: ko-KR
+
+# 로컬 개발 시 http://localhost:4000 로 접속.
+# GitHub Pages 배포 후에는 아래 두 값을 실제 주소로 맞추세요.
+url: ""
+baseurl: ""
+
+author: "AI 모션캡쳐 랩"
+
+# 목록에 보여줄 글 개수
+paginate: 10
+
+# 마크다운 / 문법 강조
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# 빌드에서 제외 (자동화 스크립트 등은 사이트로 배포하지 않음)
+exclude:
+  - automation/
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+
+# 퍼머링크: /카테고리/글제목/ 형태
+permalink: /:year/:month/:day/:title/
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
