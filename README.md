@@ -2,13 +2,16 @@
 
 AI 기반 모션캡쳐 기술을 **매일 두 편씩 자동으로** 찾아 글을 쓰고 발행하는 블로그입니다.
 
-- **콘텐츠 생성**: Claude(Anthropic) + 웹 검색으로 최신 주제 조사 후 한국어 글 작성
-- **스케줄러**: GitHub Actions cron (매일 1회, 2편 생성)
+- **엔진**: Claude Code 예약 루틴(Routine) — 매일 세션이 스스로 깨어나 실행 (별도 API 키 불필요)
+- **콘텐츠 생성**: Claude가 웹 검색으로 최신 주제 조사 후 한국어 글 작성
 - **발행**: Git 커밋 → GitHub Pages(Jekyll) 자동 배포
 
 ```
-매일 06:00 KST  →  Claude가 주제 2개 검색  →  글 2편 작성  →  _posts/에 커밋  →  Pages 자동 배포
+매일 06:00 KST  →  Claude Code 세션 자동 실행  →  주제 2개 웹검색  →  글 2편 작성  →  _posts/에 커밋·푸시  →  Pages 자동 배포
 ```
+
+매일의 작업 지시서는 [`automation/daily-prompt.md`](automation/daily-prompt.md)에 있으며,
+글 주제·톤·규칙을 바꾸려면 이 파일만 수정하면 됩니다.
 
 ---
 
@@ -23,59 +26,50 @@ AI 기반 모션캡쳐 기술을 **매일 두 편씩 자동으로** 찾아 글�
 ├── _layouts/                   # default / post 레이아웃
 ├── assets/css/style.css        # 스타일(라이트·다크 모드)
 ├── _posts/                     # 발행된 글 (자동으로 쌓임)
-├── automation/
-│   ├── generate_posts.py       # 글 생성 스크립트
-│   └── requirements.txt
-└── .github/workflows/
-    └── daily-posts.yml         # 매일 실행되는 자동화
+└── automation/
+    └── daily-prompt.md         # 매일 실행되는 작업 지시서
 ```
+
+---
+
+## 어떻게 매일 자동으로 굴러가나요?
+
+이 블로그는 **Claude Code 예약 루틴(Routine)** 으로 돌아갑니다.
+매일 정해진 시각에 Claude Code 세션이 스스로 깨어나서:
+
+1. 저장소를 최신으로 맞추고,
+2. `automation/daily-prompt.md` 지시서를 따라,
+3. 웹 검색으로 AI 모션캡쳐 최신 주제 2개를 찾아 한국어 글 2편을 쓰고,
+4. `_posts/`에 커밋·푸시합니다.
+
+→ GitHub Pages가 사이트를 다시 빌드해 발행합니다. **Anthropic API 키를 따로 관리할 필요가 없습니다.**
 
 ---
 
 ## 처음 설정 (한 번만)
 
-### 1. Anthropic API 키 발급
-[console.anthropic.com](https://console.anthropic.com) 에서 API 키를 만듭니다.
-글 1편당 보통 수십~수백 원 수준의 비용이 듭니다(모델·길이에 따라 다름).
-
-### 2. 저장소 시크릿 등록
-저장소 → **Settings → Secrets and variables → Actions → New repository secret**
-
-| 이름 | 값 |
-|---|---|
-| `ANTHROPIC_API_KEY` | 발급받은 API 키 |
-
-(선택) 모델을 바꾸려면 **Variables** 탭에서 `ANTHROPIC_MODEL` 변수를 추가하세요.
-기본값은 `claude-opus-4-8` 입니다. 비용을 낮추려면 `claude-sonnet-5` 등을 쓸 수 있습니다.
-
-### 3. GitHub Pages 켜기
+### 1. GitHub Pages 켜기
 저장소 → **Settings → Pages**
 - **Source**: `Deploy from a branch`
 - **Branch**: `main` / `/ (root)` → **Save**
 
 잠시 뒤 `https://<사용자명>.github.io/<저장소명>/` 에서 사이트가 열립니다.
 
-> 이 저장소가 사용자 페이지가 아니라 프로젝트 페이지라면(`.../저장소명/` 형태),
-> `_config.yml` 의 `baseurl` 을 `"/저장소명"`, `url` 을 `"https://<사용자명>.github.io"` 로
-> 설정하면 링크가 정확해집니다.
+> 프로젝트 페이지(`.../저장소명/` 형태)라면 `_config.yml` 의 `baseurl` 을 `"/저장소명"`,
+> `url` 을 `"https://<사용자명>.github.io"` 로 설정하면 링크가 정확해집니다.
 
-### 4. 자동화 확인
-저장소 → **Actions → 매일 AI 모션캡쳐 글 자동 생성 → Run workflow** 로 지금 바로 한 번 실행해
-글 2편이 생성·커밋되는지 확인하세요. 이후에는 매일 자동으로 실행됩니다.
+### 2. 예약 루틴 활성화
+Claude Code에게 "매일 블로그 글 자동 생성 루틴을 만들어줘"라고 요청하면
+매일 실행되는 예약 트리거가 설정됩니다(발행 브랜치: `main`).
+지금 바로 한 번 돌려보려면 "지금 오늘치 글 생성해줘"라고 하면 됩니다.
 
 ---
 
 ## 로컬에서 미리보기 (선택)
 
 ```bash
-# 사이트 미리보기 (Ruby/Jekyll 필요)
 bundle install
 bundle exec jekyll serve      # http://localhost:4000
-
-# 글 생성 스크립트 직접 실행 (Python 3.10+)
-pip install -r automation/requirements.txt
-export ANTHROPIC_API_KEY=sk-ant-...
-python automation/generate_posts.py
 ```
 
 ---
@@ -84,9 +78,8 @@ python automation/generate_posts.py
 
 | 하고 싶은 것 | 바꿀 곳 |
 |---|---|
-| 실행 시각 변경 | `.github/workflows/daily-posts.yml` 의 `cron` |
-| 하루 생성 편수 | 워크플로의 `POSTS_PER_RUN` |
-| 다루는 주제·글 톤 | `automation/generate_posts.py` 의 `build_prompt()` |
+| 다루는 주제·글 톤·분량·편수 | `automation/daily-prompt.md` |
+| 실행 시각 변경 | Claude Code 루틴(트리거)의 스케줄 |
 | 사이트 제목·소개 | `_config.yml` |
 | 디자인 | `assets/css/style.css` |
 
