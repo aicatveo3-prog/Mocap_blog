@@ -6,10 +6,10 @@ description: >-
   최신 기술과 도구를 매일 자동으로 큐레이션·발행하는 블로그입니다.
 lang: ko-KR
 
-# 로컬 개발 시 http://localhost:4000 로 접속.
-# GitHub Pages 배포 후에는 아래 두 값을 실제 주소로 맞추세요.
-url: ""
-baseurl: ""
+# GitHub Pages 프로젝트 페이지 주소.
+# 사이트: https://aicatveo3-prog.github.io/Mocap_blog/
+url: "https://aicatveo3-prog.github.io"
+baseurl: "/Mocap_blog"
 
 author: "AI 모션캡쳐 랩"
 
