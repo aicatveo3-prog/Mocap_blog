@@ -1,11 +1,12 @@
-name: 초안 PR 생성 + 슬랙 알림
+name: 초안 PR 생성 + 미리보기 + 슬랙 알림
 
 # 루틴이 draft/* 브랜치를 push 하면:
 #  1) base(발행) 브랜치로 향하는 PR을 자동 생성하고 (권한 없으면 compare 링크로 대체)
-#  2) 슬랙 채널로 "검토해주세요" 알림을 보냅니다.
+#  2) 초안을 실제 사이트 모양으로 빌드해 "미리보기 링크"를 만들고 (gh-preview 브랜치)
+#  3) 슬랙 채널로 "검토해주세요 + 미리보기" 알림을 보냅니다.
 # 승인/발행은 슬랙 채널에서 @Claude 를 불러 처리합니다.
 #   예) "@Claude PR #3 초안 보여줘"  →  "@Claude 발행해줘"
-# PR은 사람이 승인해야만 발행됩니다.
+# PR은 사람이 승인해야만 발행됩니다. (미리보기는 발행이 아님)
 
 on:
   push:
@@ -13,11 +14,12 @@ on:
       - "draft/**"
 
 permissions:
-  contents: read
+  contents: write        # gh-preview 브랜치에 미리보기 배포
   pull-requests: write
 
 env:
   BASE_BRANCH: claude/ai-mocap-blog-automation-o273mo
+  SITE_URL: https://aicatveo3-prog.github.io/Mocap_blog
 
 jobs:
   open-pr-and-notify:
@@ -49,25 +51,82 @@ jobs:
           case "$URL" in
             *"/pull/"*) NUM="${URL##*/pull/}"; NUM="${NUM%%[!0-9]*}";;
           esac
+          # 미리보기 폴더 식별자: PR 번호가 있으면 pr번호, 없으면 짧은 SHA
+          PID="${NUM:-${GITHUB_SHA:0:7}}"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "num=$NUM" >> "$GITHUB_OUTPUT"
+          echo "pid=$PID" >> "$GITHUB_OUTPUT"
 
-      - name: 새 글 제목 추출
+      - name: 새 글 파일·제목 추출
         id: titles
         run: |
           git fetch --no-tags origin "$BASE_BRANCH" || true
           FILES=$(git diff --name-only "origin/${BASE_BRANCH}...HEAD" -- '_posts/*.md' 2>/dev/null || true)
           LIST=""
+          ONELINE=""
           for f in $FILES; do
             [ -f "$f" ] || continue
             T=$(grep -m1 '^title:' "$f" | sed -E 's/^title:[[:space:]]*//; s/^"(.*)"$/\1/')
             [ -n "$T" ] && LIST="${LIST}• ${T}"$'\n'
+            ONELINE="${ONELINE}${f} "
           done
           {
-            echo "list<<__EOF__"
-            printf '%s' "$LIST"
-            echo "__EOF__"
+            echo "list<<__EOF__"; printf '%s' "$LIST"; echo "__EOF__"
+            echo "files=${ONELINE}"
           } >> "$GITHUB_OUTPUT"
+
+      # ── 미리보기 빌드 (실패해도 알림은 계속 나가도록 continue-on-error) ──
+      - name: Ruby 설정
+        id: ruby
+        continue-on-error: true
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Jekyll 빌드
+        id: build
+        if: steps.ruby.outcome == 'success' && steps.titles.outputs.files != ''
+        continue-on-error: true
+        run: bundle exec jekyll build
+
+      - name: 미리보기 HTML 생성
+        id: preview
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        env:
+          PID: ${{ steps.pr.outputs.pid }}
+          FILES: ${{ steps.titles.outputs.files }}
+        run: |
+          python3 automation/preview/build_preview.py \
+            --site _site --css _site/assets/css/style.css \
+            --siteurl "$SITE_URL" \
+            --out preview_out --pr "$PID" \
+            --posts "$FILES"
+          if [ -f "preview_out/pr-${PID}/index.html" ]; then
+            echo "ready=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 미리보기 배포 (gh-preview 브랜치)
+        id: deploy
+        if: steps.preview.outputs.ready == '1'
+        continue-on-error: true
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-preview
+          folder: preview_out
+          clean: false            # 다른 PR 미리보기는 지우지 않음
+          commit-message: "preview: PR ${{ steps.pr.outputs.pid }}"
+
+      - name: 미리보기 링크 계산
+        id: pvurl
+        if: steps.deploy.outcome == 'success'
+        run: |
+          PID="${{ steps.pr.outputs.pid }}"
+          V="${GITHUB_SHA:0:7}"
+          # githack: 자체 완결형 HTML 을 실제 웹페이지로 렌더 (?v= 로 캐시 무력화)
+          PVURL="https://raw.githack.com/${GITHUB_REPOSITORY}/gh-preview/pr-${PID}/index.html?v=${V}"
+          echo "url=$PVURL" >> "$GITHUB_OUTPUT"
 
       - name: 슬랙 알림 전송
         if: always()
@@ -76,6 +135,7 @@ jobs:
           URL: ${{ steps.pr.outputs.url }}
           NUM: ${{ steps.pr.outputs.num }}
           TITLES: ${{ steps.titles.outputs.list }}
+          PVURL: ${{ steps.pvurl.outputs.url }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "SLACK_WEBHOOK_URL 시크릿이 없습니다. (저장소 → Settings → Secrets and variables → Actions 에 추가하세요)"
@@ -83,8 +143,12 @@ jobs:
           fi
           [ -n "$URL" ] || URL="https://github.com/${GITHUB_REPOSITORY}/branches"
           PRLABEL="${NUM:-N}"
-          TEXT=$(printf '📝 *오늘의 AI 모션캡쳐 초안이 준비됐어요.*\n\n%s\n🔗 검토: %s\n\n이 채널에서 이렇게 불러주세요:\n• `@Claude PR #%s 초안 보여줘`\n• 마음에 들면 `@Claude PR #%s 발행해줘`\n• 고치고 싶으면 `@Claude PR #%s 이렇게 고쳐줘: (내용)`' "$TITLES" "$URL" "$PRLABEL" "$PRLABEL" "$PRLABEL")
-          # 슬랙 Incoming Webhook 으로 전송 (JSON 이스케이프는 jq 로 안전 처리)
+          if [ -n "$PVURL" ]; then
+            PVLINE=$(printf '📱 *미리보기(승인 전 실제 모양):* %s\n' "$PVURL")
+          else
+            PVLINE="📱 미리보기: (이번엔 생성 실패 — GitHub PR 에서 확인해주세요)"$'\n'
+          fi
+          TEXT=$(printf '📝 *오늘의 AI 모션캡쳐 초안이 준비됐어요.*\n\n%s\n%s🔗 검토·발행: %s\n\n이 채널에서 이렇게 불러주세요:\n• `@Claude PR #%s 초안 보여줘`\n• 마음에 들면 `@Claude PR #%s 발행해줘`\n• 고치고 싶으면 `@Claude PR #%s 이렇게 고쳐줘: (내용)`' "$TITLES" "$PVLINE" "$URL" "$PRLABEL" "$PRLABEL" "$PRLABEL")
           PAYLOAD=$(printf '%s' "$TEXT" | jq -Rs '{text: .}')
           RESP=$(curl -sS -X POST -H 'content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL")
           if [ "$RESP" = "ok" ]; then

@@ -1,0 +1,40 @@
+name: 미리보기 정리
+
+# 초안 PR이 병합/폐기(닫힘)되면 그 PR의 미리보기 폴더를 gh-preview 브랜치에서 지웁니다.
+# (미리보기는 발행이 아니므로, 닫히면 더 이상 필요 없음)
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    # 초안 브랜치(draft/*)에서 온 PR만 대상
+    if: startsWith(github.event.pull_request.head.ref, 'draft/')
+    steps:
+      - name: gh-preview 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: gh-preview
+          fetch-depth: 0
+        continue-on-error: true
+
+      - name: 해당 PR 미리보기 삭제
+        run: |
+          PID="${{ github.event.pull_request.number }}"
+          if [ -d "pr-${PID}" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git rm -r "pr-${PID}" >/dev/null 2>&1 || rm -rf "pr-${PID}"
+            git add -A
+            git commit -m "preview: PR #${PID} 정리(닫힘)" || { echo "지울 것 없음"; exit 0; }
+            for n in 1 2 3 4; do
+              git push origin gh-preview && break || sleep $((n*2))
+            done
+          else
+            echo "pr-${PID} 미리보기 없음 — 정리 불필요"
+          fi
