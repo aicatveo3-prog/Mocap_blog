@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko-KR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>미리보기 점검용 임시 글 (곧 삭제) · AI 모션캡쳐 랩</title>
+  <meta name="description" content="미리보기 파이프라인 점검용 임시 초안입니다.">
+  <style>
+:root {
+  --bg: #ffffff; --fg: #16181d; --muted: #6b7280; --faint: #9aa1ac;
+  --line: #eceef1; --accent: #0d9488;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+    "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --maxw: 680px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1013; --fg: #e9ebef; --muted: #9099a5; --faint: #666e7b;
+    --line: #20242b; --accent: #2dd4bf; }
+}
+:root[data-theme="light"] { --bg: #ffffff; --fg: #16181d; --muted: #6b7280; --faint: #9aa1ac; --line: #eceef1; --accent: #0d9488; }
+:root[data-theme="dark"]  { --bg: #0e1013; --fg: #e9ebef; --muted: #9099a5; --faint: #666e7b; --line: #20242b; --accent: #2dd4bf; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--sans); font-size: 17px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; height: auto; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+
+/* header */
+header.site { padding: 28px 0; }
+header.site .wrap { display: flex; align-items: center; justify-content: space-between; }
+.brand { font-weight: 700; letter-spacing: -.01em; font-size: 17px; }
+.right { display: flex; align-items: center; gap: 22px; }
+nav a { font-size: 14px; color: var(--muted); margin-left: 16px; }
+nav a:first-child { margin-left: 0; }
+nav a:hover { color: var(--fg); }
+.tt { font-family: var(--mono); font-size: 15px; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 4px; }
+.tt:hover { color: var(--accent); }
+
+/* hero */
+.hero { padding: 48px 0 40px; }
+.hero h1 { font-size: clamp(30px, 6.5vw, 46px); line-height: 1.12; letter-spacing: -.025em;
+  font-weight: 750; margin: 16px 0 0; text-wrap: balance; }
+.hero p { color: var(--muted); margin: 16px 0 0; max-width: 42ch; }
+
+/* post list */
+.list { border-top: 1px solid var(--line); }
+.empty { color: var(--muted); text-align: center; padding: 56px 0; }
+.item { display: block; padding: 26px 0; border-bottom: 1px solid var(--line); }
+.item .date { font-family: var(--mono); font-size: 12.5px; color: var(--faint); letter-spacing: .02em; }
+.item h2 { font-size: 21px; line-height: 1.4; letter-spacing: -.01em; font-weight: 650; margin: 7px 0 0; transition: color .15s; }
+.item:hover h2 { color: var(--accent); }
+.item p { color: var(--muted); font-size: 15px; margin: 7px 0 0; }
+
+/* tags (list + article) */
+.tags { margin-top: 11px; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.tags span { margin-right: 12px; }
+.tags span::before { content: "#"; color: var(--accent); opacity: .8; }
+
+/* article */
+article { padding-bottom: 20px; }
+article .a-meta { font-family: var(--mono); font-size: 12.5px; color: var(--faint); }
+article > h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.25; letter-spacing: -.02em; margin: 10px 0 0; font-weight: 720; text-wrap: balance; }
+article .tags { margin-top: 14px; }
+.post-content { margin-top: 8px; }
+.post-content h2 { font-size: 20px; margin: 34px 0 8px; letter-spacing: -.01em; font-weight: 650; }
+.post-content h3 { font-size: 17.5px; margin: 26px 0 6px; font-weight: 650; }
+.post-content p { margin: 15px 0; }
+.post-content ul, .post-content ol { padding-left: 22px; }
+.post-content li { margin: 6px 0; }
+.post-content blockquote { border-left: 2px solid var(--accent); padding: 2px 16px; color: var(--muted); margin: 18px 0; }
+.post-content code { background: var(--line); padding: 2px 6px; border-radius: 5px; font-size: .9em; font-family: var(--mono); }
+.post-content pre { background: var(--line); padding: 16px; border-radius: 10px; overflow-x: auto; }
+.post-content pre code { background: none; padding: 0; }
+.post-content table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+.post-content th, .post-content td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; }
+.post-content img { border-radius: 8px; }
+
+.sources { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); }
+.sources h4 { font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; font-weight: 500; }
+.sources a { color: var(--accent); font-size: 14px; word-break: break-all; display: inline-block; margin-bottom: 4px; }
+.note { margin-top: 22px; font-size: 13px; color: var(--faint); }
+.note a { color: var(--accent); }
+
+footer { margin-top: 72px; padding: 30px 0; border-top: 1px solid var(--line); text-align: center;
+  font-family: var(--mono); font-size: 12px; color: var(--faint); }
+
+</style>
+  <link rel="alternate" type="application/atom+xml" title="AI 모션캡쳐 랩" href="https://aicatveo3-prog.github.io/Mocap_blog/feed.xml">
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:9999;background:#0d9488;color:#fff;text-align:center;padding:10px 14px;font:600 14px/1.4 system-ui,-apple-system,sans-serif">👀 미리보기(초안) — 아직 발행되지 않았습니다. 승인해야 사이트에 올라갑니다.</div>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="https://aicatveo3-prog.github.io/Mocap_blog/">AI 모션캡쳐 랩</a>
+      <div class="right">
+        <nav>
+          <a href="https://aicatveo3-prog.github.io/Mocap_blog/about/">소개</a>
+          <a href="https://aicatveo3-prog.github.io/Mocap_blog/feed.xml">RSS</a>
+        </nav>
+        <button class="tt" id="tt" aria-label="테마 전환">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <article>
+  <div class="a-meta">2026. 07. 04 · 기술</div>
+  <h1>미리보기 점검용 임시 글 (곧 삭제)</h1>
+
+  
+  <div class="tags"><span>ai</span><span>motion-capture</span><span>test</span></div>
+  
+
+  <div class="post-content">
+    <p><strong>TL;DR</strong></p>
+<ul>
+  <li>이 글은 미리보기 렌더링을 점검하기 위한 임시 초안입니다.</li>
+  <li>승인(병합)하지 않으면 사이트에 올라가지 않습니다.</li>
+  <li>점검이 끝나면 삭제됩니다.</li>
+</ul>
+
+<h2 id="무슨-일인가">무슨 일인가</h2>
+
+<p>이 문단은 미리보기가 실제 사이트와 동일한 스타일로 보이는지 확인하기 위한 것입니다.
+소제목, 본문, 목록, 표가 제대로 렌더링되는지 봅니다.</p>
+
+<h2 id="어떻게-작동하나">어떻게 작동하나</h2>
+
+<ol>
+  <li>초안 브랜치 push</li>
+  <li>GitHub Actions가 Jekyll 빌드</li>
+  <li>미리보기 링크를 슬랙으로 전송</li>
+</ol>
+
+<table>
+  <thead>
+    <tr>
+      <th>단계</th>
+      <th>담당</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>글 작성</td>
+      <td>루틴</td>
+    </tr>
+    <tr>
+      <td>미리보기</td>
+      <td>Actions</td>
+    </tr>
+    <tr>
+      <td>발행 결정</td>
+      <td>사람</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>이 표와 목록이 미리보기에서 깔끔히 보이면 성공입니다.</p>
+
+  </div>
+
+  
+  <div class="sources">
+    <h4>참고 자료</h4>
+    <a href="https://example.com" rel="nofollow noopener" target="_blank">https://example.com</a><br>
+  </div>
+  
+
+  <p class="note">이 글은 AI가 웹 검색 결과를 바탕으로 자동 생성했습니다. 중요한 내용은 원문을 확인하세요.</p>
+  <p class="note"><a href="https://aicatveo3-prog.github.io/Mocap_blog/">← 전체 글 목록으로</a></p>
+</article>
+
+  </div>
+
+  <footer>© 2026 AI 모션캡쳐 랩</footer>
+
+  <script>
+    var root = document.documentElement;
+    document.getElementById('tt').addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme') ||
+        (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  </script>
+</body>
+</html>
