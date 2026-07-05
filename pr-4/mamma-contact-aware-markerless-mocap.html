@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko-KR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>포옹도, 춤도 놓치지 않는다: 두 사람의 접촉까지 잡아내는 CVPR 2026 마커리스 모션캡쳐 'MAMMA' · AI 모션캡쳐 랩</title>
+  <meta name="description" content="카메라만으로 두 사람의 포옹·춤·격투 같은 접촉 동작까지 정확히 복원하는 마커리스 모션캡쳐 연구, CVPR 2026 오럴 논문 MAMMA를 살펴봅니다.">
+  <style>
+:root {
+  --bg: #ffffff; --fg: #16181d; --muted: #6b7280; --faint: #9aa1ac;
+  --line: #eceef1; --accent: #0d9488;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+    "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --maxw: 680px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1013; --fg: #e9ebef; --muted: #9099a5; --faint: #666e7b;
+    --line: #20242b; --accent: #2dd4bf; }
+}
+:root[data-theme="light"] { --bg: #ffffff; --fg: #16181d; --muted: #6b7280; --faint: #9aa1ac; --line: #eceef1; --accent: #0d9488; }
+:root[data-theme="dark"]  { --bg: #0e1013; --fg: #e9ebef; --muted: #9099a5; --faint: #666e7b; --line: #20242b; --accent: #2dd4bf; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--sans); font-size: 17px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; height: auto; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+
+/* header */
+header.site { padding: 28px 0; }
+header.site .wrap { display: flex; align-items: center; justify-content: space-between; }
+.brand { font-weight: 700; letter-spacing: -.01em; font-size: 17px; }
+.right { display: flex; align-items: center; gap: 22px; }
+nav a { font-size: 14px; color: var(--muted); margin-left: 16px; }
+nav a:first-child { margin-left: 0; }
+nav a:hover { color: var(--fg); }
+.tt { font-family: var(--mono); font-size: 15px; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 4px; }
+.tt:hover { color: var(--accent); }
+
+/* hero */
+.hero { padding: 48px 0 40px; }
+.hero h1 { font-size: clamp(30px, 6.5vw, 46px); line-height: 1.12; letter-spacing: -.025em;
+  font-weight: 750; margin: 16px 0 0; text-wrap: balance; }
+.hero p { color: var(--muted); margin: 16px 0 0; max-width: 42ch; }
+
+/* post list */
+.list { border-top: 1px solid var(--line); }
+.empty { color: var(--muted); text-align: center; padding: 56px 0; }
+.item { display: block; padding: 26px 0; border-bottom: 1px solid var(--line); }
+.item .date { font-family: var(--mono); font-size: 12.5px; color: var(--faint); letter-spacing: .02em; }
+.item h2 { font-size: 21px; line-height: 1.4; letter-spacing: -.01em; font-weight: 650; margin: 7px 0 0; transition: color .15s; }
+.item:hover h2 { color: var(--accent); }
+.item p { color: var(--muted); font-size: 15px; margin: 7px 0 0; }
+
+/* tags (list + article) */
+.tags { margin-top: 11px; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.tags span { margin-right: 12px; }
+.tags span::before { content: "#"; color: var(--accent); opacity: .8; }
+
+/* article */
+article { padding-bottom: 20px; }
+article .a-meta { font-family: var(--mono); font-size: 12.5px; color: var(--faint); }
+article > h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.25; letter-spacing: -.02em; margin: 10px 0 0; font-weight: 720; text-wrap: balance; }
+article .tags { margin-top: 14px; }
+.post-content { margin-top: 8px; }
+.post-content h2 { font-size: 20px; margin: 34px 0 8px; letter-spacing: -.01em; font-weight: 650; }
+.post-content h3 { font-size: 17.5px; margin: 26px 0 6px; font-weight: 650; }
+.post-content p { margin: 15px 0; }
+.post-content ul, .post-content ol { padding-left: 22px; }
+.post-content li { margin: 6px 0; }
+.post-content blockquote { border-left: 2px solid var(--accent); padding: 2px 16px; color: var(--muted); margin: 18px 0; }
+.post-content code { background: var(--line); padding: 2px 6px; border-radius: 5px; font-size: .9em; font-family: var(--mono); }
+.post-content pre { background: var(--line); padding: 16px; border-radius: 10px; overflow-x: auto; }
+.post-content pre code { background: none; padding: 0; }
+.post-content table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+.post-content th, .post-content td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; }
+.post-content img { border-radius: 8px; }
+
+.sources { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); }
+.sources h4 { font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; font-weight: 500; }
+.sources a { color: var(--accent); font-size: 14px; word-break: break-all; display: inline-block; margin-bottom: 4px; }
+.note { margin-top: 22px; font-size: 13px; color: var(--faint); }
+.note a { color: var(--accent); }
+
+footer { margin-top: 72px; padding: 30px 0; border-top: 1px solid var(--line); text-align: center;
+  font-family: var(--mono); font-size: 12px; color: var(--faint); }
+
+</style>
+  <link rel="alternate" type="application/atom+xml" title="AI 모션캡쳐 랩" href="https://aicatveo3-prog.github.io/Mocap_blog/feed.xml">
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:9999;background:#0d9488;color:#fff;text-align:center;padding:10px 14px;font:600 14px/1.4 system-ui,-apple-system,sans-serif">👀 미리보기(초안) — 아직 발행되지 않았습니다. 승인해야 사이트에 올라갑니다.</div>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="https://aicatveo3-prog.github.io/Mocap_blog/">AI 모션캡쳐 랩</a>
+      <div class="right">
+        <nav>
+          <a href="https://aicatveo3-prog.github.io/Mocap_blog/about/">소개</a>
+          <a href="https://aicatveo3-prog.github.io/Mocap_blog/feed.xml">RSS</a>
+        </nav>
+        <button class="tt" id="tt" aria-label="테마 전환">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <article>
+  <div class="a-meta">2026. 07. 04 · 연구</div>
+  <h1>포옹도, 춤도 놓치지 않는다: 두 사람의 접촉까지 잡아내는 CVPR 2026 마커리스 모션캡쳐 'MAMMA'</h1>
+
+  
+  <div class="tags"><span>ai</span><span>motion-capture</span><span>markerless</span><span>cvpr2026</span><span>multi-person</span></div>
+  
+
+  <div class="post-content">
+    <p><strong>TL;DR</strong></p>
+<ul>
+  <li>막스플랑크 지능시스템연구소·카네기멜런대 연구진이 두 사람이 서로 닿는 동작(포옹, 춤, 격투 등)까지 마커 없이 정확히 복원하는 모션캡쳐 파이프라인 ‘MAMMA’를 CVPR 2026 오럴 논문으로 발표했습니다.</li>
+  <li>핵심은 신체 표면에 촘촘한 가상의 점(랜드마크)을 찍고, 그 점이 “지금 다른 사람과 닿아 있는지”까지 함께 추정하는 신경망입니다.</li>
+  <li>코드와 학습·평가 데이터가 모두 공개돼, 여러 대의 카메라만 있으면 연구자나 스튜디오가 직접 재현해볼 수 있습니다.</li>
+</ul>
+
+<h2 id="무슨-일인가">무슨 일인가</h2>
+
+<p>모션캡쳐(motion capture, 사람의 움직임을 디지털로 기록하는 기술)는 크게 두 갈래로 나뉩니다. 몸에 마커나 센서를 붙이는 ‘마커 기반’ 방식과, 카메라 영상만으로 동작을 추정하는 ‘마커리스(마커 없이 촬영하는 방식)’입니다. 마커리스는 배우가 슈트를 입지 않아도 되지만, 오랫동안 한 가지 약점이 있었습니다. <strong>두 사람이 서로 겹치거나 맞닿는 순간</strong> 카메라 기준으로는 누구의 팔이 누구의 몸에 닿아 있는지 구분하기 어려워, 포옹이나 춤 듀엣, 격투 장면에서 신체가 뒤엉키거나 어긋나게 복원되는 문제입니다.</p>
+
+<p>막스플랑크 지능시스템연구소(독일 튀빙겐)와 카네기멜런대(CMU) 공동 연구진은 이 문제를 정면으로 겨냥한 파이프라인 ‘MAMMA(Markerless Accurate Multi-person Motion Acquisition)’를 CVPR 2026에 오럴(구두 발표) 논문으로 공개했습니다. 여러 대의 카메라로 찍은 영상만으로 두 사람의 몸을 3D 모델(SMPL-X, 사람 몸의 형태·자세·손동작까지 표현하는 표준 3D 인체 모델)로 복원하되, 접촉 상태까지 함께 추정하는 것이 핵심입니다.</p>
+
+<h2 id="왜-중요한가">왜 중요한가</h2>
+
+<p>기존 마커리스 방식 다수는 사람마다 따로 관절 위치를 추정한 뒤 나중에 합치는 구조라, 두 사람이 붙어 있으면 “이 팔이 누구 것인가”를 혼동하기 쉬웠습니다. MAMMA는 이를 뒤집어, 신체 표면에 촘촘히 찍은 점(랜드마크) 각각에 대해 <strong>위치뿐 아니라 “지금 보이는지”, “다른 사람과 닿아 있는지”까지 함께 예측</strong>합니다. 즉 동작을 먼저 풀고 접촉을 나중에 끼워 맞추는 게 아니라, 처음부터 “접촉을 아는 채로” 동작을 복원하는 방식입니다.</p>
+
+<p>이게 왜 중요하냐면, 영화·게임의 격투/커플댄스 장면, 스포츠 바이오메카닉스(운동역학) 분석, 로봇에게 두 사람 간 물리적 상호작용을 가르치는 데이터 등은 전부 “누가 어디를 어떻게 잡고 있는지”가 정확해야 쓸모가 있기 때문입니다. 접촉이 어긋나면 애니메이션에서 손이 상대 몸을 뚫고 지나가는 등 어색한 결과가 나옵니다. 연구진은 자체 캡처한 평가 데이터(1인 동작용 MammaEval-Singles, 듀엣 동작용 MammaEval-Dance)와 기존 2인 상호작용 벤치마크(Harmony4D, CHI3D)로 검증했고, “상용 마커 기반 모션캡쳐와 견줄 만한 복원 품질을, 마커리스 방식이 보통 필요로 하는 수작업 보정 없이” 얻었다고 밝혔습니다.</p>
+
+<h2 id="어떻게-작동써보나">어떻게 작동/써보나</h2>
+
+<p>MAMMA의 처리 흐름은 크게 5단계입니다.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>단계</th>
+      <th>이름</th>
+      <th>하는 일</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>ma_cap</td>
+      <td>여러 대 카메라로 찍은 다시점(multi-view) 영상 불러오기</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>ma_masks</td>
+      <td>SAM·YOLO(이미지에서 사람을 구역별로 분리해내는 AI 모델)로 사람별 영역 분리</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>ma_2d</td>
+      <td>‘MammaNet’이 각 카메라 화면에서 신체 표면 점 512개의 위치·가시성·접촉 여부 추정</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>ma_3d</td>
+      <td>여러 카메라의 추정 결과를 짝지어 3D 몸 자세(SMPL-X)로 최적화</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>ma_vis</td>
+      <td>카메라별로 결과를 겹쳐 보거나 3D 장면으로 확인</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>MammaNet은 트랜스포머(문장이나 이미지의 여러 부분이 서로 어떻게 연관되는지를 한 번에 계산하는 AI 구조) 기반 모델로, 실제 촬영 데이터만으로는 접촉이 포함된 다양한 자세를 충분히 학습시키기 어렵다는 문제 때문에 연구진은 ‘MammaSyn’이라는 합성(컴퓨터로 만든 가상) 학습 데이터셋을 별도로 구축했습니다. 기존 합성 데이터셋 BEDLAM을 확장해 다시점 렌더링, 고해상도, 극단적인 자세와 두 사람 상호작용 장면 250만 장을 담았습니다. 코드는 추론(실행)뿐 아니라 학습 코드까지 GitHub(cuevhv/mamma)에 전부 공개돼 있고, 촬영·평가·합성 데이터도 프로젝트 페이지에서 무료 계정으로 내려받을 수 있습니다. 실행하려면 카메라 보정(calibration) 파일, 촬영 영상 폴더, 설정 파일 세 가지가 필요합니다.</p>
+
+<h2 id="한계주의점">한계·주의점</h2>
+
+<p>몇 가지 짚어야 할 점이 있습니다. 첫째, 이 방식은 <strong>동시에 촬영하는 여러 대의 보정된 카메라</strong>가 있어야 작동합니다. 스마트폰 한 대로 찍은 영상을 바로 넣을 수 있는 것은 아니라서, 앞서 다룬 단일 카메라 마커리스 연구와는 전제 조건이 다릅니다. 둘째, 학습에 합성 데이터 비중이 커서 특이한 의상·조명 환경에서는 실제 성능이 논문 수치만큼 나오지 않을 가능성이 있습니다. 셋째, 아직은 연구용 파이프라인이라 카메라 보정과 GPU 실행 환경을 다룰 줄 알아야 하며, 상용 소프트웨어처럼 바로 쓸 수 있는 형태는 아닙니다.</p>
+
+<p>MAMMA가 보여주는 흐름은 결국 “마커리스 모션캡쳐가 단독 인물 추정을 넘어, 사람과 사람 사이의 물리적 관계까지 이해하는 방향”으로 가고 있다는 점입니다. 이런 접촉 인식 기술이 스포츠 분석이나 로봇 학습용 데이터 제작에도 응용되기 시작하면, 지금은 마커를 쓸 수밖에 없던 밀착 동작 촬영의 상당 부분이 카메라만으로 대체될 수 있습니다.</p>
+
+  </div>
+
+  
+  <div class="sources">
+    <h4>참고 자료</h4>
+    <a href="https://github.com/cuevhv/mamma" rel="nofollow noopener" target="_blank">https://github.com/cuevhv/mamma</a><br><a href="https://arxiv.org/abs/2506.13040" rel="nofollow noopener" target="_blank">https://arxiv.org/abs/2506.13040</a><br><a href="https://cvpr.thecvf.com/virtual/2026/poster/38876" rel="nofollow noopener" target="_blank">https://cvpr.thecvf.com/virtual/2026/poster/38876</a><br>
+  </div>
+  
+
+  <p class="note">이 글은 AI가 웹 검색 결과를 바탕으로 자동 생성했습니다. 중요한 내용은 원문을 확인하세요.</p>
+  <p class="note"><a href="https://aicatveo3-prog.github.io/Mocap_blog/">← 전체 글 목록으로</a></p>
+</article>
+
+  </div>
+
+  <footer>© 2026 AI 모션캡쳐 랩</footer>
+
+  <script>
+    var root = document.documentElement;
+    document.getElementById('tt').addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme') ||
+        (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  </script>
+</body>
+</html>
